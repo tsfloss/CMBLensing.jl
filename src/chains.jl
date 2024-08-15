@@ -188,14 +188,13 @@ bootstrap resampling using the calculated "effective sample size" of the chain.
 function mean_std_and_errors(samples; N_bootstrap=10000, N_in_paren=2, tol=50)
     
     Neff = round(Int, MCMCDiagnosticTools.ess(reshape(samples, :, 1, 1))[1])
-    
     μ = mean(samples)
     σ = std(samples)
 
     SEμ = std([mean(samples[rand(1:end, Neff)]) for i=1:N_bootstrap])
     SEσ = std([ std(samples[rand(1:end, Neff)]) for i=1:N_bootstrap])
     
-    "$(paren_errors(μ, SEμ; N_in_paren=N_in_paren)) ± $(paren_errors(σ, SEσ; N_in_paren=N_in_paren))"
+    "$(paren_errors(μ, SEμ; N_in_paren=N_in_paren)) ± $(paren_errors(σ, SEσ; N_in_paren=N_in_paren)), $(Neff)"
     
 end
 

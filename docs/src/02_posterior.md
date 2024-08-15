@@ -7,9 +7,9 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.5
+      jupytext_version: 1.15.2
   kernelspec:
-    display_name: Julia 1.9.0-rc2
+    display_name: Julia 1.9.2
     language: julia
     name: julia-1.9
   language_info:

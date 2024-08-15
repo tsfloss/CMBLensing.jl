@@ -188,6 +188,8 @@ function sample_joint(
         gibbs_sample_f!,
         gibbs_mix!,
         gibbs_sample_ϕ!,
+        gibbs_sample_slice_θ!(:Aϕ) |> once_every(5) |> start_after_burnin(100),
+        gibbs_sample_slice_θ!(:r) |> once_every(5) |> start_after_burnin(100),
         gibbs_unmix!,
         gibbs_postprocess!
     ],
@@ -204,7 +206,7 @@ function sample_joint(
     conjgrad_kwargs = (tol=1e-1, nsteps=500),
     nhmc = 1,
     nburnin_always_accept = 10,
-    symp_kwargs = fill((N=25, ϵ=0.01), nhmc),
+    symp_kwargs = fill((N=25, ϵ=0.02), nhmc),
     MAP_kwargs = (nsteps=40,),
     metadata = nothing,
     progress = false,
@@ -243,7 +245,7 @@ function sample_joint(
     @everywhere @eval CMBLensing seed!()
 
     # distribute the dataset object to workers once
-    set_distributed_dataset(ds, storage)
+    # set_distributed_dataset(ds, storage)
 
     # initialize chains
     states = map(copy, repeated(rundat, nchains))
@@ -269,7 +271,8 @@ function sample_joint(
     states = pmap(states) do state
         state = _adapt(storage, state)
         for gibbs_initialize! in gibbs_initializers
-            gibbs_initialize!(state, get_distributed_dataset())
+            # gibbs_initialize!(state, get_distributed_dataset())
+            gibbs_initialize!(state, ds)
         end
         _adapt(Array, state)
     end
@@ -297,7 +300,8 @@ function sample_joint(
             state = @⌛ _adapt(storage, state)
 
             timing = @⌛ "Gibbs passes" map(gibbs_samplers) do gibbs_sample!
-                @elapsed gibbs_sample!(state, get_distributed_dataset())
+                # @elapsed gibbs_sample!(state, get_distributed_dataset())
+                @elapsed gibbs_sample!(state, ds)
             end
             
             state = @⌛ _adapt(Array, state)
@@ -430,11 +434,12 @@ end
 function gibbs_sample_slice_θ!(k::Symbol)
     @⌛ function gibbs_sample_slice_θ!(state, ds::DataSet)
         @unpack θ, Ω, θrange, logpdfθ, pbar_dict, progress, grid_and_sample_kwargs = state
-        θₖ, logpdfθₖ = grid_and_sample(θₖ -> logpdf(Mixed(ds); Ω..., θ=@set(θ[k]=θₖ)), cpu(θrange[k]); progress=(progress==:verbose), grid_and_sample_kwargs...)
+        θₖ, logpdfθₖ = grid_and_sample(θₖ -> logpdf(Mixed(ds); Ω..., θ=@set(θ[k]=θₖ)), θrange[k]; progress=(progress==:verbose), grid_and_sample_kwargs...)
         @set! θ[k] = θₖ
         @set! logpdfθ[k] = logpdfθₖ
         @set! Ω.θ = θ
-        pbar_dict[string(k)] = string_trunc(θₖ)
+        # pbar_dict[string(k)] = string_trunc(θₖ)
+        pbar_dict[string(k)] = string(θₖ)
         @pack! state = θ, logpdfθ, Ω
     end
 end

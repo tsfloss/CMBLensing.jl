@@ -266,7 +266,7 @@ function MAP_marg(
 
     dsθ = ds(θ)
     dsθ.G = I # MAP_marg is invariant to G so avoid wasted computation
-    set_distributed_dataset(dsθ)
+    # set_distributed_dataset(dsθ)
     @unpack Cϕ, Nϕ, d, Cf, Cn, L = dsθ
     Hϕ⁻¹ = pinv(pinv(Cϕ) + pinv(Nϕ))
     T = real(eltype(d))
@@ -318,7 +318,7 @@ function MAP_marg(
             f_wf_prev = gMAP_data.f_wf
         else
             gMAP_data, gMAP_sims = peel(pmap(0:Nsims, [dsθ.d, d_sims...], [f_wf_prev, f_wf_sims_prev...]) do i, d, f_wf_prev
-                gMAP(Lϕ, @set(get_distributed_dataset().d=d), f_wf_prev, i)
+                gMAP(Lϕ, @set(dsθ.d=d), f_wf_prev, i)
             end)
             ḡ = mean(map(gMAP_sims) do gMAP
                 mean(unbatch(gMAP.g))
@@ -336,7 +336,7 @@ function MAP_marg(
         
     end
 
-    set_distributed_dataset(nothing) # free memory
+    # set_distributed_dataset(nothing) # free memory
     
     return ϕ, tr
 
